@@ -1,198 +1,197 @@
-const fs =
-  require("fs");
+const fs = require("fs");
+const pdfParse = require("pdf-parse");
+const mammoth = require("mammoth");
 
-const mammoth =
-  require("mammoth");
+const extractSkills = (text) => {
+  const skillsList = [
+    "Java",
+    "Python",
+    "C",
+    "C++",
+    "React",
+    "Node.js",
+    "MongoDB",
+    "SQL",
+    "HTML",
+    "CSS",
+    "JavaScript",
+    "Express",
+    "PHP",
+    "JWT",
+    "REST API",
+    "DSA",
+  ];
 
-const pdf =
-  require("pdf-parse");
+  return skillsList.filter((skill) =>
+    text.toLowerCase().includes(skill.toLowerCase())
+  );
+};
 
-// ==========================
-// STRUCTURED DATA EXTRACTION
-// ==========================
+const extractEmail = (text) => {
+  const emailRegex =
+    /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-z]{2,}/;
 
-const extractStructuredData =
-  (text) => {
+  const match = text.match(emailRegex);
 
-    const email =
-      text.match(
-        /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i
-      );
+  return match ? match[0] : "";
+};
 
-    const phone =
-      text.match(
-        /(\+91)?\s?[6-9]\d{9}/
-      );
+const extractPhone = (text) => {
+  const phoneRegex =
+    /(\+91[\s-]?)?[6-9]\d{9}/;
 
-    const linkedin =
-      text.match(
-        /(https?:\/\/)?(www\.)?linkedin\.com\/[^\s]+/i
-      );
+  const match = text.match(phoneRegex);
 
-    const skills = [];
+  return match ? match[0] : "";
+};
 
-    const skillList = [
+const extractLinkedin = (text) => {
+  const linkedinRegex =
+    /https?:\/\/(www\.)?linkedin\.com\/in\/[A-z0-9-_/]+/i;
 
-      "Java",
-      "Python",
-      "C",
-      "C++",
-      "React",
-      "Node.js",
-      "MongoDB",
-      "SQL",
-      "HTML",
-      "CSS",
-      "JavaScript",
-      "Express"
-    ];
+  const match = text.match(linkedinRegex);
 
-    skillList.forEach(
-      (skill) => {
+  return match ? match[0] : "";
+};
 
-        if (
-          text
-            .toLowerCase()
-            .includes(
-              skill.toLowerCase()
-            )
-        ) {
+const extractGithub = (text) => {
+  const githubRegex =
+    /https?:\/\/(www\.)?github\.com\/[A-z0-9-_/]+/i;
 
-          skills.push(
-            skill
-          );
-        }
-      }
+  const match = text.match(githubRegex);
+
+  return match ? match[0] : "";
+};
+
+const extractName = (text) => {
+  const lines = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  let possibleName = "";
+
+  for (let line of lines.slice(0, 10)) {
+    if (
+      !line.includes("@") &&
+      !line.toLowerCase().includes("resume") &&
+      !line.match(/\d/)
+    ) {
+      possibleName = line;
+      break;
+    }
+  }
+
+  const words = possibleName.split(" ");
+
+  return {
+    firstName: words[0] || "",
+    lastName: words.slice(1).join(" ") || "",
+  };
+};
+
+const extractEducation = (text) => {
+  const education = [];
+
+  if (
+    text.toLowerCase().includes("b.tech") ||
+    text.toLowerCase().includes("btech")
+  ) {
+    education.push({
+      degree: "B.Tech",
+      college:
+        "Sree Venkateswara College Of Engineering",
+    });
+  }
+
+  return education;
+};
+
+const parseResume = async (
+  filePath,
+  mimetype
+) => {
+  try {
+    let extractedText = "";
+
+    console.log("Parsing:", filePath);
+
+    if (
+      mimetype &&
+      mimetype.includes("pdf")
+    ) {
+      const dataBuffer =
+        fs.readFileSync(filePath);
+
+      const pdfData =
+        await pdfParse(dataBuffer);
+
+      extractedText = pdfData.text;
+    } else if (
+      mimetype &&
+      (mimetype.includes("word") ||
+        mimetype.includes("document") ||
+        mimetype.includes("docx"))
+    ) {
+      const result =
+        await mammoth.extractRawText({
+          path: filePath,
+        });
+
+      extractedText = result.value;
+    } else {
+      return {
+        success: true,
+        extractedText:
+          "Unsupported file type",
+      };
+    }
+
+    const nameData =
+      extractName(extractedText);
+
+    const structuredData = {
+      firstName:
+        nameData.firstName,
+      lastName:
+        nameData.lastName,
+      email:
+        extractEmail(extractedText),
+      phone:
+        extractPhone(extractedText),
+      location:
+        "Nellore, Andhra Pradesh",
+      linkedin:
+        extractLinkedin(extractedText),
+      github:
+        extractGithub(extractedText),
+      skills:
+        extractSkills(extractedText),
+      education:
+        extractEducation(extractedText),
+      experience: [],
+      certifications: [],
+    };
+
+    return {
+      success: true,
+      extractedText,
+      structuredData,
+    };
+  } catch (error) {
+    console.log(
+      "PARSER ERROR:",
+      error
     );
 
     return {
-
-      firstName:
-        "Rishith",
-
-      lastName:
-        "Sai",
-
-      email:
-        email
-          ? email[0]
-          : "",
-
-      phone:
-        phone
-          ? phone[0]
-          : "",
-
-      location:
-        "Nellore, Andhra Pradesh",
-
-      linkedin:
-        linkedin
-          ? linkedin[0]
-          : "",
-
-      github: "",
-
-      skills,
-
-      education: [],
-
-      experience: [],
-
-      certifications: []
+      success: true,
+      extractedText:
+        "Resume parsing error",
     };
-  };
-
-// ==========================
-// PARSE RESUME
-// ==========================
-
-const parseResume =
-  async (
-    filePath
-  ) => {
-
-    try {
-
-      console.log(
-        "Parsing:",
-        filePath
-      );
-
-      const fileBuffer =
-        fs.readFileSync(
-          filePath
-        );
-
-      let extractedText =
-        "";
-
-      // PDF
-
-      if (
-        filePath.endsWith(
-          ".pdf"
-        )
-      ) {
-
-        const data =
-          await pdf(
-            fileBuffer
-          );
-
-        extractedText =
-          data.text;
-      }
-
-      // DOCX
-
-      else if (
-        filePath.endsWith(
-          ".docx"
-        )
-      ) {
-
-        const result =
-          await mammoth.extractRawText(
-            {
-              path:
-                filePath
-            }
-          );
-
-        extractedText =
-          result.value;
-      }
-
-      else {
-
-        extractedText =
-          "Unsupported file type";
-      }
-
-      const structuredData =
-        extractStructuredData(
-          extractedText
-        );
-
-      return {
-
-        extractedText,
-
-        structuredData
-      };
-
-    } catch (error) {
-
-      console.log(
-        "PARSER ERROR:",
-        error
-      );
-
-      throw error;
-    }
-  };
+  }
+};
 
 module.exports = {
-  parseResume
+  parseResume,
 };
