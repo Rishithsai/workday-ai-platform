@@ -107,6 +107,8 @@ const extractEducation = (text) => {
   return education;
 };
 
+const path = require("path");
+
 const parseResume = async (
   filePath,
   mimetype
@@ -115,10 +117,16 @@ const parseResume = async (
     let extractedText = "";
 
     console.log("Parsing:", filePath);
+    console.log("MimeType:", mimetype);
 
+    const extension =
+      path.extname(filePath).toLowerCase();
+
+    // PDF
     if (
-      mimetype &&
-      mimetype.includes("pdf")
+      extension === ".pdf" ||
+      (mimetype &&
+        mimetype.includes("pdf"))
     ) {
       const dataBuffer =
         fs.readFileSync(filePath);
@@ -127,11 +135,15 @@ const parseResume = async (
         await pdfParse(dataBuffer);
 
       extractedText = pdfData.text;
-    } else if (
-      mimetype &&
-      (mimetype.includes("word") ||
-        mimetype.includes("document") ||
-        mimetype.includes("docx"))
+    }
+
+    // DOCX
+    else if (
+      extension === ".docx" ||
+      extension === ".doc" ||
+      (mimetype &&
+        (mimetype.includes("word") ||
+          mimetype.includes("document")))
     ) {
       const result =
         await mammoth.extractRawText({
