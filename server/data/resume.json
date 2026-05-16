@@ -1,0 +1,15 @@
+{
+  "firstName": "Rishith",
+  "lastName": "Sai",
+  "email": "rishith@gmail.com",
+  "phone": "9876543210",
+  "linkedin": "https://linkedin.com/in/rishith",
+  "github": "https://github.com/rishith",
+  "skills": ["React", "Node.js", "MongoDB"],
+  "experience": [
+    {
+      "company": "ABC",
+      "role": "Developer"
+    }
+  ]
+}
